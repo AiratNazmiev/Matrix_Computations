@@ -1,6 +1,7 @@
 # Matrix Computaions Course at YSDA&HSE (2025)
 
-Literature:
+## Literature:
+
 [1] J. W. Demmel. Applied numerical linear algebra. SIAM, 1997.
 
 [2] E. E. Тыртышников. Методы численного анализа. Академия, 2007.
