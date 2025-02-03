@@ -1,6 +1,6 @@
 # Matrix Computaions Course at YSDA&HSE (2025)
 
-## Literature:
+## Literature
 
 [1] J. W. Demmel. Applied numerical linear algebra. SIAM, 1997.
 
