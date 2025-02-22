@@ -1,102 +1,106 @@
-from __future__ import division, print_function
-
 import numpy as np
+import typing as tp
+#import numba
 
 try:
     from pylab import plt
 except ImportError:
     print('Unable to import pylab. R_pca.plot_fit() will not work.')
 
-try:
-    # Python 2: 'xrange' is the iterative version
-    range = xrange
-except NameError:
-    # Python 3: 'range' is iterative - no need for 'xrange'
-    pass
 
+#@numba.njit(cache=True, parallel=True)
+def frobenius_norm(M: np.ndarray) -> float:
+    """ Compute the Frobenius norm of a matrix """
+    return np.sqrt(np.sum(M**2))
+
+#@numba.njit(cache=True, parallel=True)
+def shrink(M: np.ndarray, tau: float) -> np.ndarray:
+    """ Apply elementwise soft-thresholding """
+    return np.sign(M) * np.maximum(np.abs(M) - tau, 0)
+
+#@numba.njit(cache=True, parallel=True)
+def svd_threshold(M: np.ndarray, tau: float) -> np.ndarray:
+    """ Compute singular value thresholding (SVT) """
+    U, S, V = np.linalg.svd(M, full_matrices=False)
+    return U @ np.diag(shrink(S, tau)) @ V
+
+#@numba.njit(cache=True, parallel=True)
+def fit_numba(
+        D: np.ndarray, 
+        S: np.ndarray, 
+        Y: np.ndarray, 
+        mu: float,
+        mu_inv: float, 
+        lmbda: float, 
+        tol: tp.Optional[float], 
+        max_iter: int, 
+        iter_print: int
+    ) -> tuple[np.ndarray, np.ndarray]:
+    """ JIT-compiled fit function to accelerate the iterative Principal Component Pursuit (PCP) algorithm """
+    iter = 0
+    err = np.inf
+    L = np.zeros(D.shape)
+
+    if tol is None:
+        tol = 1e-7 * frobenius_norm(D)
+
+    while (err > tol) and (iter < max_iter):
+        L = svd_threshold(D - S + mu_inv * Y, mu_inv)
+        S = shrink(D - L + mu_inv * Y, mu_inv * lmbda)
+        Y = Y + mu * (D - L - S)
+
+        err = frobenius_norm(D - L - S)
+        iter += 1
+        if (iter % iter_print) == 0 or iter == 1 or iter > max_iter or err <= tol:
+            #with numba.objmode():
+            print("Iteration: ", iter, "Error: ", err)  # w/o numba.objmode() print won't work properly
+
+    return L, S
 
 class R_pca:
-
-    def __init__(self, D, mu=None, lmbda=None):
+    def __init__(self, D: np.ndarray, mu: float = None, lmbda: float = None) -> None:
+        """ Initialize R_pca with data matrix D and optional parameters """
         self.D = D
-        self.S = np.zeros(self.D.shape)
-        self.Y = np.zeros(self.D.shape)
+        self.S = np.zeros(D.shape)
+        self.Y = np.zeros(D.shape)
 
-        if mu:
+        if mu is not None:
             self.mu = mu
         else:
-            self.mu = np.prod(self.D.shape) / (4 * np.linalg.norm(self.D, ord=1))
+            self.mu = np.prod(D.shape) / (4 * np.linalg.norm(D, ord=1))
 
         self.mu_inv = 1 / self.mu
 
-        if lmbda:
+        if lmbda is not None:
             self.lmbda = lmbda
         else:
-            self.lmbda = 1 / np.sqrt(np.max(self.D.shape))
+            self.lmbda = 1 / np.sqrt(np.max(D.shape))
 
-    @staticmethod
-    def frobenius_norm(M):
-        return np.linalg.norm(M, ord='fro')
+    def fit(self, tol: tp.Optional[float] = None, max_iter: int = 1000, iter_print: int = 100) -> tuple[np.ndarray, np.ndarray]:
+        """ Fit the Robust PCA model using Principal Component Pursuit """
+        self.L, self.S = fit_numba(self.D, self.S, self.Y, self.mu, self.mu_inv, self.lmbda, tol, max_iter, iter_print)
+        return self.L, self.S
 
-    @staticmethod
-    def shrink(M, tau):
-        return np.sign(M) * np.maximum((np.abs(M) - tau), np.zeros(M.shape))
-
-    def svd_threshold(self, M, tau):
-        U, S, V = np.linalg.svd(M, full_matrices=False)
-        return np.dot(U, np.dot(np.diag(self.shrink(S, tau)), V))
-
-    def fit(self, tol=None, max_iter=1000, iter_print=100):
-        iter = 0
-        err = np.Inf
-        Sk = self.S
-        Yk = self.Y
-        Lk = np.zeros(self.D.shape)
-
-        if tol:
-            _tol = tol
-        else:
-            _tol = 1E-7 * self.frobenius_norm(self.D)
-
-        #this loop implements the principal component pursuit (PCP) algorithm
-        #located in the table on page 29 of https://arxiv.org/pdf/0912.3599.pdf
-        while (err > _tol) and iter < max_iter:
-            Lk = self.svd_threshold(
-                self.D - Sk + self.mu_inv * Yk, self.mu_inv)                            #this line implements step 3
-            Sk = self.shrink(
-                self.D - Lk + (self.mu_inv * Yk), self.mu_inv * self.lmbda)             #this line implements step 4
-            Yk = Yk + self.mu * (self.D - Lk - Sk)                                      #this line implements step 5
-            err = self.frobenius_norm(self.D - Lk - Sk)
-            iter += 1
-            if (iter % iter_print) == 0 or iter == 1 or iter > max_iter or err <= _tol:
-                print('iteration: {0}, error: {1}'.format(iter, err))
-
-        self.L = Lk
-        self.S = Sk
-        return Lk, Sk
-
-    def plot_fit(self, size=None, tol=0.1, axis_on=True):
-
+    def plot_fit(self, size: tp.Optional[tuple[int, int]] = None, tol: float = 0.1, axis_on: bool = True) -> None:
+        """ Plot the low-rank and sparse decomposition """
         n, d = self.D.shape
 
         if size:
             nrows, ncols = size
         else:
             sq = np.ceil(np.sqrt(n))
-            nrows = int(sq)
-            ncols = int(sq)
+            nrows, ncols = int(sq), int(sq)
 
-        ymin = np.nanmin(self.D)
-        ymax = np.nanmax(self.D)
-        print('ymin: {0}, ymax: {1}'.format(ymin, ymax))
+        ymin, ymax = np.nanmin(self.D), np.nanmax(self.D)
+        print(f'ymin: {ymin}, ymax: {ymax}')
 
-        numplots = np.min([n, nrows * ncols])
+        numplots = min(n, nrows * ncols)
         plt.figure()
 
-        for n in range(numplots):
-            plt.subplot(nrows, ncols, n + 1)
+        for i in range(numplots):
+            plt.subplot(nrows, ncols, i + 1)
             plt.ylim((ymin - tol, ymax + tol))
-            plt.plot(self.L[n, :] + self.S[n, :], 'r')
-            plt.plot(self.L[n, :], 'b')
+            plt.plot(self.L[i, :] + self.S[i, :], 'r')
+            plt.plot(self.L[i, :], 'b')
             if not axis_on:
                 plt.axis('off')
