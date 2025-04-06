@@ -1,0 +1,106 @@
+\documentclass{article}
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[top=2cm, bottom=4.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{lastpage}
+\usepackage{fancyhdr}
+\usepackage{mathrsfs}
+\usepackage[hidelinks]{hyperref}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\newcommand{\rank}{\operatorname{rank}}
+
+\newcommand{\prob}[1]{\item \textbf{(#1 баллов)}.}
+\newcommand{\bonus}{\item \textbf{(Бонус)}.~}
+
+
+\setlength{\parindent}{0.0in}
+\setlength{\parskip}{0.05in}
+
+\pagestyle{fancyplain}
+\headheight 35pt         
+\rhead{\textbf{Версия от:} 24.03.24 \\ \textbf{Дедлайн:} 07.04.24 в 23:59}
+\chead{\textbf{\Large Домашняя работа 3} \\ }
+\lhead{ФКН ВШЭ \\ Основы матричных вычислений \\ Весенний семестр 2025} 
+\lfoot{}
+\cfoot{}
+\rfoot{\small\thepage}
+\headsep 1.5em
+
+
+
+\begin{document}
+
+\begin{enumerate}
+    \item \textbf{(15 баллов).} Покажите, что $F_n^4 = n^2 I$, где $F_n$ -- матрица Фурье.
+    \item \textbf{(20 баллов: 10 + 10).} Пусть задана матрица $A\in\mathbb{R}^{m\times n}$, $m\geq n$. 
+    \begin{enumerate}
+    \item Покажите, что $A$ можно привести к верхнетреугольной матрице $R$ с помощью преобразований Хаусхолдера, используя 
+    \[ 
+        2mn^2 - \frac{2}{3} n^3 + \mathcal{O}(mn),
+    \]
+    арифметических операций. 
+    \item Если сначала перемножить матрицы Хаусхолдера, а затем взять нужную подматрицу, то сложность получения матрицы $Q\in\mathbb{R}^{m\times n}$ из thin QR будет $\mathcal{O}(m^3)$. Как можно получить меньшую сложность:
+    \[ 
+        2mn^2 - \frac{2}{3} n^3 + \mathcal{O}(mn),
+    \]
+    арифметических операций? Ответ обоснуйте.
+    \end{enumerate}
+     \item \textbf{(25 баллов: 12 + 10 + 3).} Запишем решение $x_\mu$ задачи наименьших квадратов с $\ell_2$-регуляризацией:
+    \[
+        \|Ax - b\|_2^2 + \mu \|x\|_2^2 \to \min_x
+    \]
+    для заданной матрицы $A\in\mathbb{C}^{m\times n}$ ранга $r$, вектора правой части $b\in\mathbb{C}^{m\times n}$ и константы $\mu\in\mathbb{R}_+$ в виде
+    $x_\mu = B(\mu) b$
+    с матрицей $B(\mu)\in \mathbb{C}^{n\times m}$, которая выражается через $A$ и $\mu$.
+    \begin{enumerate}
+    \item Найдите $B(\mu)$.
+    \item Покажите, что для $\mu>0$ справедливо:
+    \[
+        \|B(\mu) - A^+\|_2 = \frac{\mu}{\left(\mu + \sigma_r(A)^2\right)\sigma_r(A)}.
+    \]
+    \item Покажите, что $B(\mu)\to A^+$ и что $x_\mu\to A^+b$ при $\mu\to +0$.
+    \end{enumerate}
+    \item \textbf{(20 баллов: 5 + 5 + 10).}
+    Пусть ненулевые $a, b\in\mathbb{R}^{n}$, $n\geq 2$ ортогональны друг другу и 
+    \[
+        A = a \circ a \circ a + 2 (a \circ b \circ a) - (a \circ b \circ b).
+    \]
+    \begin{enumerate}
+        \item Запишите матрицы $U,V,W \in\mathbb{R}^{n\times 2}$ из канонического разложения $A$. 
+        \item Запишите ядро $G \in\mathbb{R}^{1\times 2 \times 2}$ и факторы $U,V,W$ из разложения Таккера $A$.
+        \item Докажите, что мультилинейный ранг тензора $A$ равен $(1, 2, 2)$.
+    \end{enumerate}
+    \prob{20} Предложите алгоритм вычисления скелетного разложения следующей матрицы:
+\[
+    A = C^{-1}\left(aa^\top + T^2\,\texttt{DFT2}\left(UV^\top\right)\right)^+,
+\]
+с числом арифметических операций $\mathcal{O}(nr\log n + nr^2)$. Считайте, что $a\in\mathbb{R}^n$, $T\in\mathbb{R}^{n\times n}$ -- теплицева матрица, $C\in\mathbb{R}^{n\times n}$ -- невырожденный циркулянт, $U,V\in\mathbb{R}^{n\times r}$, $r\ll n$, $\texttt{DFT2}\colon \mathbb{C}^{n\times n}\to \mathbb{C}^{n\times n}$ -- двумерное дискретное преобразование Фурье.
+
+\end{enumerate}
+
+\subsection*{Бонусные задачи}
+
+
+\begin{enumerate}
+    \item\textbf{(20 б. балла)}. 
+    Для заданных матриц $A,B,F\in\mathbb{C}^{n\times n}$ предложите алгоритм решения матричного уравнения:
+    \[
+    AX + XB = F,
+    \]
+    с числом арифметических операций $\mathcal{O}(n^3)$. Считайте, что $A$ и $B$ подобраны так, что уравнение имеет единственное решение для любого $F$. Также считайте известной асимптотическую сложность~$\mathcal{O}(n^3)$ вычисления разложений Шура от $n\times n$ матрицы.
+    \item\textbf{(40 б. балла)}. 
+    Рассмотрим матрицы, полученные из циркулянтов путем умножения элементов ниже главной диагонали на $-1$. Найдите собственные значения и собственные векторы таких матриц.
+    \item \textbf{(40 б. балла)}.
+    Предложите алгоритм с асимптотической сложностью $\mathcal{O}(n\log n)$ для умножения $n\times n$ матрицы с элементами $a_{ij} = \cos(ij)$ (нумерация начинается с $1$) на произвольный вектор.
+    
+
+\end{enumerate}
+
+\end{document}
